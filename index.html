@@ -2,14 +2,21 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pháo hoa của lam </title>
     <style>
-        /* CSS: Nền gradient tối như bầu trời đêm */
+        /* CSS: Tối ưu cho mobile */
+        * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        html, body {
+            height: 100%;
+            min-height: -webkit-fill-available;
+            min-height: 100dvh;
+        }
         body {
             background: linear-gradient( to bottom, #0a0a1a 0%, #000 50%, #0d0d20 100% );
             margin: 0;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
         }
         canvas {
             display: block;
@@ -17,10 +24,8 @@
         }
         .overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
             background: linear-gradient( 180deg, rgba(0,0,0,0.85) 0%, rgba(10,5,30,0.9) 100% );
             display: flex;
             flex-direction: column;
@@ -35,17 +40,18 @@
         }
         .greeting {
             font-family: 'Segoe UI', Georgia, serif;
-            font-size: clamp(2rem, 6vw, 4rem);
+            font-size: clamp(1.25rem, 5vw, 4rem);
             font-weight: 300;
             color: #fff;
             text-shadow: 0 0 30px rgba(255,200,100,0.5), 0 0 60px rgba(255,150,50,0.3);
             letter-spacing: 0.1em;
-            margin-bottom: 2rem;
+            margin-bottom: clamp(1rem, 4vw, 2rem);
+            padding: 0 1rem;
             text-align: center;
         }
         .btn-start {
-            padding: 1rem 3rem;
-            font-size: 1.2rem;
+            padding: clamp(0.9rem, 3vw, 1.2rem) clamp(2rem, 8vw, 3rem);
+            font-size: clamp(1rem, 4vw, 1.2rem);
             font-family: 'Segoe UI', sans-serif;
             color: #1a0a20;
             background: linear-gradient( 135deg, #ffd54f 0%, #ff9800 50%, #f57c00 100% );
@@ -55,7 +61,7 @@
             box-shadow: 0 4px 20px rgba(255,152,0,0.4), 0 0 40px rgba(255,200,100,0.2);
             transition: transform 0.2s, box-shadow 0.2s;
         }
-        .btn-start:hover {
+        .btn-start:hover, .btn-start:active {
             transform: scale(1.05);
             box-shadow: 0 6px 30px rgba(255,152,0,0.5);
         }
@@ -94,12 +100,24 @@
             launchQueue = [],
             loopStarted = false;
 
-        // Thiết lập kích thước canvas full màn hình
-        canvas.width = cw;
-        canvas.height = ch;
+        var isMobile = cw < 600 || ch < 700;
+        var lineScale = isMobile ? Math.max( 1.4, 600 / cw ) : 1;
+
+        function resizeCanvas() {
+            cw = window.innerWidth;
+            ch = window.innerHeight;
+            canvas.width = cw;
+            canvas.height = ch;
+            isMobile = cw < 600 || ch < 700;
+            lineScale = isMobile ? Math.max( 1.3, 520 / Math.min(cw, ch) ) : 1;
+        }
+        resizeCanvas();
+        window.addEventListener( 'resize', resizeCanvas );
+        window.addEventListener( 'orientationchange', function() { setTimeout(resizeCanvas, 100); });
 
         var stars = [];
-        for ( var i = 0; i < 80; i++ ) {
+        var starCount = isMobile ? 45 : 80;
+        for ( var i = 0; i < starCount; i++ ) {
             stars.push({
                 x: random( 0, cw ),
                 y: random( 0, ch ),
@@ -172,7 +190,7 @@
         }
 
         Firework.prototype.draw = function() {
-            ctx.lineWidth = 0.7;
+            ctx.lineWidth = 0.7 * lineScale;
             ctx.lineCap = 'round';
             ctx.beginPath();
             ctx.moveTo( this.coordinates[ this.coordinates.length - 1 ][ 0 ], this.coordinates[ this.coordinates.length - 1 ][ 1 ] );
@@ -180,11 +198,11 @@
             ctx.strokeStyle = 'hsl(' + this.hue + ', 100%, ' + this.brightness + '%)';
             ctx.stroke();
             ctx.beginPath();
-            ctx.arc( this.x, this.y, 0.5, 0, Math.PI * 2 );
+            ctx.arc( this.x, this.y, 0.5 * lineScale, 0, Math.PI * 2 );
             ctx.fillStyle = 'hsl(' + this.sparkHue + ', 100%, 90%)';
             ctx.fill();
             ctx.beginPath();
-            ctx.arc( this.tx, this.ty, this.targetRadius * 0.6, 0, Math.PI * 2 );
+            ctx.arc( this.tx, this.ty, this.targetRadius * 0.6 * lineScale, 0, Math.PI * 2 );
             ctx.strokeStyle = 'hsla(' + this.hue + ', 80%, 70%, 0.6)';
             ctx.stroke();
         }
@@ -225,7 +243,7 @@
         }
 
         Particle.prototype.draw = function() {
-            ctx.lineWidth = this.lineWidth;
+            ctx.lineWidth = this.lineWidth * lineScale;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             ctx.beginPath();
@@ -235,7 +253,7 @@
             ctx.stroke();
             if( this.isSparkle ) {
                 ctx.beginPath();
-                ctx.arc( this.x, this.y, 0.5, 0, Math.PI * 2 );
+                ctx.arc( this.x, this.y, 0.5 * lineScale, 0, Math.PI * 2 );
                 ctx.fillStyle = 'hsla(' + this.hue + ', 100%, ' + this.brightness + '%, ' + this.alpha + ')';
                 ctx.fill();
             }
@@ -258,7 +276,6 @@
             var burstHue = ( ( baseHue !== undefined ? baseHue : random( 0, 360 ) ) + 360 ) % 360;
             var accentHue = ( burstHue + random( 30, 80 ) + 360 ) % 360;
             
-            // Lõi sáng chớp nhoáng khi nổ
             for ( var i = 0; i < 12; i++ ) {
                 var a = random( 0, Math.PI * 2 );
                 particles.push( new Particle( x, y, {
@@ -274,7 +291,6 @@
                 }));
             }
             
-            // Lớp chính - bông cúc nhỏ gọn
             var rayCount = Math.floor( random( 10, 14 ) );
             var angleStep = ( Math.PI * 2 ) / rayCount;
             for ( var r = 0; r < rayCount; r++ ) {
@@ -299,7 +315,6 @@
                 }
             }
             
-            // Lớp willow - tia rơi nhỏ
             var willowCount = Math.floor( random( 5, 10 ) );
             for ( var w = 0; w < willowCount; w++ ) {
                 var a = random( 0, Math.PI * 2 );
@@ -317,7 +332,6 @@
                 }));
             }
             
-            // Điểm sáng lấp lánh
             for ( var i = 0; i < 8; i++ ) {
                 var a = random( 0, Math.PI * 2 );
                 particles.push( new Particle( x, y, {
@@ -443,7 +457,7 @@
                 while( batch-- ) {
                     launchVerticalFirework( undefined, Math.floor( random( 0, maxDelay ) ) );
                 }
-                nextLaunchDelay = Math.floor( random( 90, 170 ) );
+                nextLaunchDelay = Math.floor( random( 38, 75 ) );
             } else {
                 nextLaunchDelay--;
             }
