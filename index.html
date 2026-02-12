@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pháo hoa của lam </title>
+    <style>
+        /* CSS: Nền gradient tối như bầu trời đêm */
+        body {
+            background: linear-gradient( to bottom, #0a0a1a 0%, #000 50%, #0d0d20 100% );
+            margin: 0;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            cursor: default;
+        }
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient( 180deg, rgba(0,0,0,0.85) 0%, rgba(10,5,30,0.9) 100% );
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: opacity 0.6s ease;
+        }
+        .overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .greeting {
+            font-family: 'Segoe UI', Georgia, serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 300;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(255,200,100,0.5), 0 0 60px rgba(255,150,50,0.3);
+            letter-spacing: 0.1em;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .btn-start {
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            font-family: 'Segoe UI', sans-serif;
+            color: #1a0a20;
+            background: linear-gradient( 135deg, #ffd54f 0%, #ff9800 50%, #f57c00 100% );
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(255,152,0,0.4), 0 0 40px rgba(255,200,100,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-start:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 30px rgba(255,152,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="overlay">
+        <p class="greeting">Chúc mừng năm mới</p>
+        <p class="greeting">Chúc Hai năm mới vui vẻ nháaaaa !!!!!!!</p>
+        <button class="btn-start" id="btnStart">Start</button>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // JAVASCRIPT: Logic xử lý pháo hoa
+        
+        // Khởi tạo biến toàn cục
+        window.requestAnimFrame = ( function() {
+            return window.requestAnimationFrame ||
+                window.webkitRequestAnimationFrame ||
+                window.mozRequestAnimationFrame ||
+                function( callback ) {
+                    window.setTimeout( callback, 1000 / 60 );
+                };
+        })();
+
+        var canvas = document.getElementById( 'canvas' ),
+            ctx = canvas.getContext( '2d' ),
+            cw = window.innerWidth,
+            ch = window.innerHeight,
+            fireworks = [],
+            particles = [],
+            hue = 120,
+            nextLaunchDelay = 0,
+            launchQueue = [],
+            loopStarted = false;
+
+        // Thiết lập kích thước canvas full màn hình
+        canvas.width = cw;
+        canvas.height = ch;
+
+        var stars = [];
+        for ( var i = 0; i < 80; i++ ) {
+            stars.push({
+                x: random( 0, cw ),
+                y: random( 0, ch ),
+                size: random( 0.5, 1.5 ),
+                twinkle: random( 0.3, 0.8 )
+            });
+        }
+
+        // Hàm tiện ích: Lấy số ngẫu nhiên trong khoảng
+        function random( min, max ) {
+            return Math.random() * ( max - min ) + min;
+        }
+
+        // Hàm tiện ích: Tính khoảng cách
+        function calculateDistance( p1x, p1y, p2x, p2y ) {
+            var xDistance = p1x - p2x,
+                yDistance = p1y - p2y;
+            return Math.sqrt( Math.pow( xDistance, 2 ) + Math.pow( yDistance, 2 ) );
+        }
+
+        // Lớp đối tượng Pháo hoa (Bay từ dưới lên) - vệt đuôi sáng
+        function Firework( sx, sy, tx, ty ) {
+            this.x = sx;
+            this.y = sy;
+            this.sx = sx;
+            this.sy = sy;
+            this.tx = tx;
+            this.ty = ty;
+            this.distanceToTarget = calculateDistance( sx, sy, tx, ty );
+            this.distanceTraveled = 0;
+            this.coordinates = [];
+            this.coordinateCount = 5;
+            this.hue = random( 0, 360 );
+            this.sparkHue = ( this.hue + random( -30, 30 ) ) % 360;
+            
+            while( this.coordinateCount-- ) {
+                this.coordinates.push( [ this.x, this.y ] );
+            }
+            this.angle = Math.atan2( ty - sy, tx - sx );
+            this.speed = 0.38;
+            this.acceleration = 1.012;
+            this.brightness = random( 55, 75 );
+            this.targetRadius = 0.3;
+        }
+
+        Firework.prototype.update = function( index ) {
+            this.coordinates.pop();
+            this.coordinates.unshift( [ this.x, this.y ] );
+
+            if( this.targetRadius < 2.5 ) {
+                this.targetRadius += 0.08;
+            } else {
+                this.targetRadius = 1;
+            }
+
+            this.speed *= this.acceleration;
+            
+            var vx = Math.cos( this.angle ) * this.speed,
+                vy = Math.sin( this.angle ) * this.speed;
+            
+            this.distanceTraveled = calculateDistance( this.sx, this.sy, this.x + vx, this.y + vy );
+            
+            if( this.distanceTraveled >= this.distanceToTarget ) {
+                createFlowerBurst( this.tx, this.ty, this.hue );
+                fireworks.splice( index, 1 );
+            } else {
+                this.x += vx;
+                this.y += vy;
+            }
+        }
+
+        Firework.prototype.draw = function() {
+            ctx.lineWidth = 0.7;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo( this.coordinates[ this.coordinates.length - 1 ][ 0 ], this.coordinates[ this.coordinates.length - 1 ][ 1 ] );
+            ctx.lineTo( this.x, this.y );
+            ctx.strokeStyle = 'hsl(' + this.hue + ', 100%, ' + this.brightness + '%)';
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc( this.x, this.y, 0.5, 0, Math.PI * 2 );
+            ctx.fillStyle = 'hsl(' + this.sparkHue + ', 100%, 90%)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc( this.tx, this.ty, this.targetRadius * 0.6, 0, Math.PI * 2 );
+            ctx.strokeStyle = 'hsla(' + this.hue + ', 80%, 70%, 0.6)';
+            ctx.stroke();
+        }
+
+        // Lớp đối tượng Hạt pháo hoa - dải dài như cánh hoa
+        function Particle( x, y, opt ) {
+            opt = opt || {};
+            this.x = x;
+            this.y = y;
+            this.coordinates = [];
+            this.coordinateCount = opt.trailLength || 12;
+            while( this.coordinateCount-- ) {
+                this.coordinates.push( [ this.x, this.y ] );
+            }
+            this.angle = opt.angle !== undefined ? opt.angle : random( 0, Math.PI * 2 );
+            this.speed = opt.speed !== undefined ? opt.speed : random( 2, 12 );
+            this.friction = opt.friction || 0.96;
+            this.gravity = opt.gravity !== undefined ? opt.gravity : random( 0.5, 1.5 );
+            this.hue = opt.hue !== undefined ? opt.hue : random( hue - 30, hue + 30 );
+            this.brightness = opt.brightness !== undefined ? opt.brightness : random( 60, 95 );
+            this.alpha = 1;
+            this.decay = opt.decay !== undefined ? opt.decay : random( 0.01, 0.025 );
+            this.lineWidth = opt.lineWidth || random( 0.3, 0.9 );
+            this.isSparkle = opt.isSparkle || false;
+        }
+
+        Particle.prototype.update = function( index ) {
+            this.coordinates.pop();
+            this.coordinates.unshift( [ this.x, this.y ] );
+            this.speed *= this.friction;
+            this.x += Math.cos( this.angle ) * this.speed;
+            this.y += Math.sin( this.angle ) * this.speed + this.gravity;
+            this.alpha -= this.decay;
+            
+            if( this.alpha <= this.decay ) {
+                particles.splice( index, 1 );
+            }
+        }
+
+        Particle.prototype.draw = function() {
+            ctx.lineWidth = this.lineWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            ctx.moveTo( this.coordinates[ this.coordinates.length - 1 ][ 0 ], this.coordinates[ this.coordinates.length - 1 ][ 1 ] );
+            ctx.lineTo( this.x, this.y );
+            ctx.strokeStyle = 'hsla(' + this.hue + ', 100%, ' + this.brightness + '%, ' + this.alpha + ')';
+            ctx.stroke();
+            if( this.isSparkle ) {
+                ctx.beginPath();
+                ctx.arc( this.x, this.y, 0.5, 0, Math.PI * 2 );
+                ctx.fillStyle = 'hsla(' + this.hue + ', 100%, ' + this.brightness + '%, ' + this.alpha + ')';
+                ctx.fill();
+            }
+        }
+
+        // Bắn pháo hoa thẳng đứng từ vị trí ngẫu nhiên ở đáy màn hình
+        function launchVerticalFirework( fromX, delayFrames ) {
+            var startX = fromX !== undefined ? fromX : random( cw * 0.15, cw * 0.85 );
+            var startY = ch;
+            var explodeY = random( ch * 0.2, ch * 0.5 );
+            if ( delayFrames !== undefined && delayFrames > 0 ) {
+                launchQueue.push( { startX: startX, explodeY: explodeY, delay: delayFrames } );
+            } else {
+                fireworks.push( new Firework( startX, startY, startX, explodeY ) );
+            }
+        }
+
+        // Tạo chùm pháo hoa đẹp như thật - Chrysanthemum + Willow
+        function createFlowerBurst( x, y, baseHue ) {
+            var burstHue = ( ( baseHue !== undefined ? baseHue : random( 0, 360 ) ) + 360 ) % 360;
+            var accentHue = ( burstHue + random( 30, 80 ) + 360 ) % 360;
+            
+            // Lõi sáng chớp nhoáng khi nổ
+            for ( var i = 0; i < 12; i++ ) {
+                var a = random( 0, Math.PI * 2 );
+                particles.push( new Particle( x, y, {
+                    angle: a,
+                    speed: random( 2, 5 ),
+                    hue: random( 40, 55 ),
+                    trailLength: 5,
+                    lineWidth: random( 0.5, 1 ),
+                    gravity: 0.15,
+                    decay: 0.045,
+                    brightness: 95,
+                    friction: 0.92
+                }));
+            }
+            
+            // Lớp chính - bông cúc nhỏ gọn
+            var rayCount = Math.floor( random( 10, 14 ) );
+            var angleStep = ( Math.PI * 2 ) / rayCount;
+            for ( var r = 0; r < rayCount; r++ ) {
+                var rayAngle = r * angleStep + random( -0.05, 0.05 );
+                var rayHue = r % 3 === 0 ? accentHue : burstHue;
+                var raysInSpoke = Math.floor( random( 4, 6 ) );
+                for ( var i = 0; i < raysInSpoke; i++ ) {
+                    var spread = 0.35 + ( i / raysInSpoke ) * 0.6;
+                    var speed = random( 2.5, 6 ) * spread;
+                    var angle = rayAngle + random( -0.12, 0.12 );
+                    particles.push( new Particle( x, y, {
+                        angle: angle,
+                        speed: speed,
+                        hue: ( rayHue + random( -10, 10 ) + 360 ) % 360,
+                        trailLength: 12,
+                        lineWidth: random( 0.45, 1 ),
+                        decay: random( 0.005, 0.014 ),
+                        gravity: random( 0.12, 0.35 ),
+                        brightness: random( 75, 95 ),
+                        friction: 0.97
+                    }));
+                }
+            }
+            
+            // Lớp willow - tia rơi nhỏ
+            var willowCount = Math.floor( random( 5, 10 ) );
+            for ( var w = 0; w < willowCount; w++ ) {
+                var a = random( 0, Math.PI * 2 );
+                var speed = random( 1.5, 4 );
+                particles.push( new Particle( x, y, {
+                    angle: a + random( -0.2, 0.2 ),
+                    speed: speed,
+                    hue: ( burstHue + random( -20, 20 ) + 360 ) % 360,
+                    trailLength: 14,
+                    lineWidth: random( 0.4, 0.9 ),
+                    decay: random( 0.004, 0.01 ),
+                    gravity: random( 0.9, 1.5 ),
+                    brightness: random( 65, 90 ),
+                    friction: 0.98
+                }));
+            }
+            
+            // Điểm sáng lấp lánh
+            for ( var i = 0; i < 8; i++ ) {
+                var a = random( 0, Math.PI * 2 );
+                particles.push( new Particle( x, y, {
+                    angle: a,
+                    speed: random( 1.5, 4.5 ),
+                    hue: ( burstHue + random( -15, 15 ) + 360 ) % 360,
+                    trailLength: 10,
+                    lineWidth: 0.5,
+                    gravity: random( 0.25, 0.55 ),
+                    decay: 0.014,
+                    isSparkle: true
+                }));
+            }
+            
+            playExplosionSound();
+        }
+
+        // Âm thanh pháo nổ (Web Audio API)
+        var audioCtx = null;
+
+        function initAudio() {
+            if ( !audioCtx ) {
+                audioCtx = new ( window.AudioContext || window.webkitAudioContext )();
+            }
+            if ( audioCtx.state === 'suspended' ) {
+                audioCtx.resume();
+            }
+        }
+
+        function playExplosionSound() {
+            if ( !audioCtx ) initAudio();
+            if ( !audioCtx ) return;
+
+            try {
+                // Tạo nhiễu trắng cho tiếng nổ
+                var bufferSize = audioCtx.sampleRate * 0.3;
+                var buffer = audioCtx.createBuffer( 1, bufferSize, audioCtx.sampleRate );
+                var data = buffer.getChannelData( 0 );
+                for ( var i = 0; i < bufferSize; i++ ) {
+                    data[ i ] = ( Math.random() * 2 - 1 ) * Math.exp( -i / ( bufferSize * 0.15 ) );
+                }
+
+                var noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+
+                var filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 800;
+
+                var gainNode = audioCtx.createGain();
+                gainNode.gain.setValueAtTime( 0.4, audioCtx.currentTime );
+                gainNode.gain.exponentialRampToValueAtTime( 0.01, audioCtx.currentTime + 0.3 );
+
+                noise.connect( filter );
+                filter.connect( gainNode );
+                gainNode.connect( audioCtx.destination );
+
+                noise.start( audioCtx.currentTime );
+                noise.stop( audioCtx.currentTime + 0.3 );
+
+                // Thêm âm trầm "boom"
+                var osc = audioCtx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime( 150, audioCtx.currentTime );
+                osc.frequency.exponentialRampToValueAtTime( 30, audioCtx.currentTime + 0.2 );
+
+                var oscGain = audioCtx.createGain();
+                oscGain.gain.setValueAtTime( 0.3, audioCtx.currentTime );
+                oscGain.gain.exponentialRampToValueAtTime( 0.01, audioCtx.currentTime + 0.25 );
+
+                osc.connect( oscGain );
+                oscGain.connect( audioCtx.destination );
+                osc.start( audioCtx.currentTime );
+                osc.stop( audioCtx.currentTime + 0.25 );
+            } catch ( e ) {}
+        }
+
+        // Vòng lặp chính của hiệu ứng
+        function loop() {
+            requestAnimFrame( loop );
+            if ( !loopStarted ) return;
+            
+            // Tạo hiệu ứng vệt mờ (trails)
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.fillRect( 0, 0, cw, ch );
+            ctx.globalCompositeOperation = 'source-over';
+            
+            var t = Date.now() / 1000;
+            for ( var i = 0; i < stars.length; i++ ) {
+                var s = stars[ i ];
+                var blink = 0.5 + 0.5 * Math.sin( t * 2 + i ) * s.twinkle;
+                ctx.beginPath();
+                ctx.arc( s.x, s.y, s.size, 0, Math.PI * 2 );
+                ctx.fillStyle = 'rgba(255, 255, 255, ' + blink * 0.5 + ')';
+                ctx.fill();
+            }
+            ctx.globalCompositeOperation = 'lighter';
+            
+            var i = fireworks.length;
+            while( i-- ) {
+                fireworks[ i ].draw();
+                fireworks[ i ].update( i );
+            }
+            
+            var i = particles.length;
+            while( i-- ) {
+                particles[ i ].draw();
+                particles[ i ].update( i );
+            }
+            
+            for ( var q = launchQueue.length - 1; q >= 0; q-- ) {
+                launchQueue[ q ].delay--;
+                if ( launchQueue[ q ].delay <= 0 ) {
+                    var item = launchQueue.splice( q, 1 )[ 0 ];
+                    fireworks.push( new Firework( item.startX, ch, item.startX, item.explodeY ) );
+                }
+            }
+            
+            if( nextLaunchDelay <= 0 ) {
+                var batch = Math.floor( random( 18, 38 ) );
+                var maxDelay = Math.floor( random( 40, 120 ) );
+                while( batch-- ) {
+                    launchVerticalFirework( undefined, Math.floor( random( 0, maxDelay ) ) );
+                }
+                nextLaunchDelay = Math.floor( random( 90, 170 ) );
+            } else {
+                nextLaunchDelay--;
+            }
+        }
+
+        canvas.addEventListener( 'mousedown', function( e ) {
+            if ( loopStarted ) initAudio();
+        });
+
+        canvas.addEventListener( 'touchstart', function( e ) {
+            if ( loopStarted ) initAudio();
+        }, { passive: true });
+
+        function startShow() {
+            document.getElementById( 'overlay' ).classList.add( 'hidden' );
+            initAudio();
+            loopStarted = true;
+            loop();
+        }
+
+        document.getElementById( 'btnStart' ).addEventListener( 'click', startShow );
+        document.getElementById( 'btnStart' ).addEventListener( 'touchstart', function( e ) {
+            e.preventDefault();
+            startShow();
+        }, { passive: false });
+
+        loop();
+    </script>
+</body>
+</html>
