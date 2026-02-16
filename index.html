@@ -98,7 +98,8 @@
             hue = 120,
             nextLaunchDelay = 0,
             launchQueue = [],
-            loopStarted = false;
+            loopStarted = false,
+            floatingTexts = [];
 
         var isMobile = cw < 600 || ch < 700;
         var lineScale = isMobile ? Math.max( 1.4, 600 / cw ) : 1;
@@ -259,6 +260,27 @@
             }
         }
 
+        var congratsMessages = [
+            'Chúc mừng năm mới!', 'Luôn vui vẻ nháaaaaa', 'Luôn suôn sẻ trong mọi việc',
+            'Tiền tài như nước nè', 'Hạnh phúc hơn năm cũ nhá', 'Thật nhiều may mắn nè',
+            'Có ny cưng chiều như em nhá', 'Sức khỏe dồi dào nè', 'Chúc luôn cả gđ hai nè',
+            'Sum vầy ấm no', 'May mắn cả năm', 'Chúc Hai năm mới vui vẻ!'
+        ];
+
+        function addFloatingText( x, y ) {
+            if ( Math.random() > 0.22 ) return;
+            var msg = congratsMessages[ Math.floor( Math.random() * congratsMessages.length ) ];
+            floatingTexts.push({
+                text: msg,
+                x: Math.max( 80, Math.min( cw - 80, x + random( -80, 80 ) ) ),
+                y: Math.max( 60, Math.min( ch - 80, y - random( 10, 50 ) ) ),
+                alpha: 1,
+                decay: random( 0.008, 0.018 ),
+                vy: -random( 0.3, 0.8 ),
+                fontSize: Math.floor( random( 14, 22 ) * lineScale )
+            });
+        }
+
         // Bắn pháo hoa thẳng đứng từ vị trí ngẫu nhiên ở đáy màn hình
         function launchVerticalFirework( fromX, delayFrames ) {
             var startX = fromX !== undefined ? fromX : random( cw * 0.15, cw * 0.85 );
@@ -346,6 +368,7 @@
                 }));
             }
             
+            addFloatingText( x, y );
             playExplosionSound();
         }
 
@@ -442,6 +465,28 @@
                 particles[ i ].draw();
                 particles[ i ].update( i );
             }
+
+            ctx.globalCompositeOperation = 'source-over';
+            for ( var f = floatingTexts.length - 1; f >= 0; f-- ) {
+                var ft = floatingTexts[ f ];
+                ft.y += ft.vy;
+                ft.alpha -= ft.decay;
+                if ( ft.alpha <= 0 ) {
+                    floatingTexts.splice( f, 1 );
+                    continue;
+                }
+                ctx.font = 'bold ' + ft.fontSize + 'px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.shadowColor = 'rgba(255, 200, 80, ' + ft.alpha + ')';
+                ctx.shadowBlur = 12;
+                ctx.fillStyle = 'rgba(255, 255, 255, ' + ft.alpha + ')';
+                ctx.strokeStyle = 'rgba(255, 180, 50, ' + ft.alpha * 0.9 + ')';
+                ctx.lineWidth = 2;
+                ctx.strokeText( ft.text, ft.x, ft.y );
+                ctx.fillText( ft.text, ft.x, ft.y );
+                ctx.shadowBlur = 0;
+            }
+            ctx.globalCompositeOperation = 'lighter';
             
             for ( var q = launchQueue.length - 1; q >= 0; q-- ) {
                 launchQueue[ q ].delay--;
@@ -452,12 +497,12 @@
             }
             
             if( nextLaunchDelay <= 0 ) {
-                var batch = Math.floor( random( 18, 38 ) );
+                var batch = Math.floor( random( 35, 60 ) );
                 var maxDelay = Math.floor( random( 40, 120 ) );
                 while( batch-- ) {
                     launchVerticalFirework( undefined, Math.floor( random( 0, maxDelay ) ) );
                 }
-                nextLaunchDelay = Math.floor( random( 38, 75 ) );
+                nextLaunchDelay = Math.floor( random( 8, 22 ) );
             } else {
                 nextLaunchDelay--;
             }
