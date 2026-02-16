@@ -99,7 +99,8 @@
             nextLaunchDelay = 0,
             launchQueue = [],
             loopStarted = false,
-            floatingTexts = [];
+            floatingTexts = [],
+            messageIndex = 0;
 
         var isMobile = cw < 600 || ch < 700;
         var lineScale = isMobile ? Math.max( 1.4, 600 / cw ) : 1;
@@ -158,8 +159,8 @@
                 this.coordinates.push( [ this.x, this.y ] );
             }
             this.angle = Math.atan2( ty - sy, tx - sx );
-            this.speed = 0.38;
-            this.acceleration = 1.012;
+            this.speed = 0.18;
+            this.acceleration = 1.008;
             this.brightness = random( 55, 75 );
             this.targetRadius = 0.3;
         }
@@ -261,22 +262,22 @@
         }
 
         var congratsMessages = [
-            'Chúc mừng năm mới!', 'Luôn vui vẻ nháaaaaa', 'Luôn suôn sẻ trong mọi việc',
+            'A nhon xe ô' ,'Chúc mừng năm mới!','Chúc Hai' ,'Luôn vui vẻ nháaaaaa', 'Luôn suôn sẻ trong mọi việc',
             'Tiền tài như nước nè', 'Hạnh phúc hơn năm cũ nhá', 'Thật nhiều may mắn nè',
             'Có ny cưng chiều như em nhá', 'Sức khỏe dồi dào nè', 'Chúc luôn cả gđ hai nè',
             'Sum vầy ấm no', 'May mắn cả năm', 'Chúc Hai năm mới vui vẻ!'
         ];
 
         function addFloatingText( x, y ) {
-            if ( Math.random() > 0.22 ) return;
-            var msg = congratsMessages[ Math.floor( Math.random() * congratsMessages.length ) ];
+            var msg = congratsMessages[ messageIndex % congratsMessages.length ];
+            messageIndex++;
             floatingTexts.push({
                 text: msg,
                 x: Math.max( 80, Math.min( cw - 80, x + random( -80, 80 ) ) ),
                 y: Math.max( 60, Math.min( ch - 80, y - random( 10, 50 ) ) ),
                 alpha: 1,
-                decay: random( 0.008, 0.018 ),
-                vy: -random( 0.3, 0.8 ),
+                decay: random( 0.0015, 0.004 ),
+                vy: -random( 0.15, 0.4 ),
                 fontSize: Math.floor( random( 14, 22 ) * lineScale )
             });
         }
@@ -302,14 +303,14 @@
                 var a = random( 0, Math.PI * 2 );
                 particles.push( new Particle( x, y, {
                     angle: a,
-                    speed: random( 2, 5 ),
+                    speed: random( 1.2, 3 ),
                     hue: random( 40, 55 ),
                     trailLength: 5,
                     lineWidth: random( 0.5, 1 ),
-                    gravity: 0.15,
-                    decay: 0.045,
+                    gravity: 0.08,
+                    decay: 0.025,
                     brightness: 95,
-                    friction: 0.92
+                    friction: 0.96
                 }));
             }
             
@@ -321,7 +322,7 @@
                 var raysInSpoke = Math.floor( random( 4, 6 ) );
                 for ( var i = 0; i < raysInSpoke; i++ ) {
                     var spread = 0.35 + ( i / raysInSpoke ) * 0.6;
-                    var speed = random( 2.5, 6 ) * spread;
+                    var speed = random( 1.5, 3.5 ) * spread;
                     var angle = rayAngle + random( -0.12, 0.12 );
                     particles.push( new Particle( x, y, {
                         angle: angle,
@@ -329,10 +330,10 @@
                         hue: ( rayHue + random( -10, 10 ) + 360 ) % 360,
                         trailLength: 12,
                         lineWidth: random( 0.45, 1 ),
-                        decay: random( 0.005, 0.014 ),
-                        gravity: random( 0.12, 0.35 ),
+                        decay: random( 0.003, 0.009 ),
+                        gravity: random( 0.08, 0.22 ),
                         brightness: random( 75, 95 ),
-                        friction: 0.97
+                        friction: 0.98
                     }));
                 }
             }
@@ -340,17 +341,17 @@
             var willowCount = Math.floor( random( 5, 10 ) );
             for ( var w = 0; w < willowCount; w++ ) {
                 var a = random( 0, Math.PI * 2 );
-                var speed = random( 1.5, 4 );
+                var speed = random( 1, 2.5 );
                 particles.push( new Particle( x, y, {
                     angle: a + random( -0.2, 0.2 ),
                     speed: speed,
                     hue: ( burstHue + random( -20, 20 ) + 360 ) % 360,
                     trailLength: 14,
                     lineWidth: random( 0.4, 0.9 ),
-                    decay: random( 0.004, 0.01 ),
-                    gravity: random( 0.9, 1.5 ),
+                    decay: random( 0.0025, 0.006 ),
+                    gravity: random( 0.6, 1 ),
                     brightness: random( 65, 90 ),
-                    friction: 0.98
+                    friction: 0.985
                 }));
             }
             
@@ -358,12 +359,12 @@
                 var a = random( 0, Math.PI * 2 );
                 particles.push( new Particle( x, y, {
                     angle: a,
-                    speed: random( 1.5, 4.5 ),
+                    speed: random( 1, 2.8 ),
                     hue: ( burstHue + random( -15, 15 ) + 360 ) % 360,
                     trailLength: 10,
                     lineWidth: 0.5,
-                    gravity: random( 0.25, 0.55 ),
-                    decay: 0.014,
+                    gravity: random( 0.15, 0.4 ),
+                    decay: 0.008,
                     isSparkle: true
                 }));
             }
@@ -439,7 +440,7 @@
             
             // Tạo hiệu ứng vệt mờ (trails)
             ctx.globalCompositeOperation = 'destination-out';
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect( 0, 0, cw, ch );
             ctx.globalCompositeOperation = 'source-over';
             
@@ -497,12 +498,12 @@
             }
             
             if( nextLaunchDelay <= 0 ) {
-                var batch = Math.floor( random( 35, 60 ) );
-                var maxDelay = Math.floor( random( 40, 120 ) );
+                var batch = Math.floor( random( 12, 20 ) );
+                var maxDelay = Math.floor( random( 90, 200 ) );
                 while( batch-- ) {
                     launchVerticalFirework( undefined, Math.floor( random( 0, maxDelay ) ) );
                 }
-                nextLaunchDelay = Math.floor( random( 8, 22 ) );
+                nextLaunchDelay = Math.floor( random( 180, 280 ) );
             } else {
                 nextLaunchDelay--;
             }
