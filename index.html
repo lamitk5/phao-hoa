@@ -159,8 +159,8 @@
                 this.coordinates.push( [ this.x, this.y ] );
             }
             this.angle = Math.atan2( ty - sy, tx - sx );
-            this.speed = 0.18;
-            this.acceleration = 1.008;
+            this.speed = 0.32;
+            this.acceleration = 1.015;
             this.brightness = random( 55, 75 );
             this.targetRadius = 0.3;
         }
@@ -220,7 +220,7 @@
                 this.coordinates.push( [ this.x, this.y ] );
             }
             this.angle = opt.angle !== undefined ? opt.angle : random( 0, Math.PI * 2 );
-            this.speed = opt.speed !== undefined ? opt.speed : random( 2, 12 );
+            this.speed = opt.speed !== undefined ? opt.speed : random( 3, 14 );
             this.friction = opt.friction || 0.96;
             this.gravity = opt.gravity !== undefined ? opt.gravity : random( 0.5, 1.5 );
             this.hue = opt.hue !== undefined ? opt.hue : random( hue - 30, hue + 30 );
@@ -278,7 +278,7 @@
                 alpha: 1,
                 decay: random( 0.0015, 0.004 ),
                 vy: -random( 0.15, 0.4 ),
-                fontSize: Math.floor( random( 14, 22 ) * lineScale )
+                fontSize: Math.floor( random( 10, 16 ) * ( isMobile ? 1 : 1.2 ) )
             });
         }
 
@@ -482,7 +482,7 @@
                 ctx.shadowBlur = 12;
                 ctx.fillStyle = 'rgba(255, 255, 255, ' + ft.alpha + ')';
                 ctx.strokeStyle = 'rgba(255, 180, 50, ' + ft.alpha * 0.9 + ')';
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2.5;
                 ctx.strokeText( ft.text, ft.x, ft.y );
                 ctx.fillText( ft.text, ft.x, ft.y );
                 ctx.shadowBlur = 0;
@@ -503,7 +503,7 @@
                 while( batch-- ) {
                     launchVerticalFirework( undefined, Math.floor( random( 0, maxDelay ) ) );
                 }
-                nextLaunchDelay = Math.floor( random( 180, 280 ) );
+                nextLaunchDelay = Math.floor( random( 120, 200 ) );
             } else {
                 nextLaunchDelay--;
             }
